@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dan & Ally's Spooky Movie Cinema</title>
+    <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0d0814;
+            --marquee-gold: #ffcf33;
+            --neon-pink: #ff2a85;
+            --neon-purple: #9d4edd;
+            --spooky-green: #39ff14;
+            --curtain-red: #800e13;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: #fff;
+            font-family: 'Montserrat', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Floating background elements */
+        .spooky-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .floating-emoji {
+            position: absolute;
+            font-size: 2rem;
+            opacity: 0.15;
+            animation: float 12s infinite linear;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(105vh) rotate(0deg); }
+            100% { transform: translateY(-10vh) rotate(360deg); }
+        }
+
+        /* Main Theater Frame */
+        .theater-container {
+            position: relative;
+            z-index: 1;
+            width: 90%;
+            max-width: 650px;
+            background: #161024;
+            border: 4px solid var(--neon-purple);
+            border-radius: 20px;
+            box-shadow: 0 0 25px rgba(157, 78, 221, 0.4), inset 0 0 15px rgba(0, 0, 0, 0.8);
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        /* Marquee Header */
+        .marquee {
+            border: 4px dashed var(--marquee-gold);
+            background: #000;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 0 15px var(--marquee-gold);
+            margin-bottom: 25px;
+            animation: marqueeGlow 2s infinite alternate;
+        }
+
+        @keyframes marqueeGlow {
+            0% { box-shadow: 0 0 10px var(--marquee-gold); }
+            100% { box-shadow: 0 0 25px var(--marquee-gold), 0 0 5px #fff; }
+        }
+
+        h1 {
+            font-family: 'Creepster', cursive;
+            font-size: 2.8rem;
+            color: var(--neon-pink);
+            text-shadow: 3px 3px 0px #000, 0 0 10px var(--neon-pink);
+            letter-spacing: 2px;
+        }
+
+        .subtitle {
+            font-size: 0.9rem;
+            color: var(--spooky-green);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-top: 5px;
+            font-weight: 700;
+        }
+
+        /* Spinner Display Area */
+        .wheel-outer {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            margin: 0 auto 25px;
+        }
+
+        .pointer {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-top: 25px solid var(--spooky-green);
+            z-index: 10;
+            filter: drop-shadow(0 0 8px var(--spooky-green));
+        }
+
+        canvas {
+            border-radius: 50%;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8), 0 0 15px var(--neon-purple);
+            transition: transform 4s cubic-bezier(0.15, 0.9, 0.15, 1);
+        }
+
+        /* Controls */
+        .spin-btn {
+            background: linear-gradient(45deg, var(--neon-pink), var(--neon-purple));
+            color: #fff;
+            font-family: 'Creepster', cursive;
+            font-size: 2rem;
+            padding: 12px 35px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 0 15px var(--neon-pink);
+            transition: all 0.2s ease;
+            letter-spacing: 2px;
+        }
+
+        .spin-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px var(--neon-pink), 0 0 10px var(--spooky-green);
+        }
+
+        .spin-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Winner Modal / Overlay */
+        .result-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .result-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .result-card {
+            background: #1d142d;
+            border: 3px solid var(--spooky-green);
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 0 30px var(--spooky-green);
+            transform: scale(0.7);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .result-overlay.active .result-card {
+            transform: scale(1);
+        }
+
+        .result-card h2 {
+            font-family: 'Creepster', cursive;
+            color: var(--marquee-gold);
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+        }
+
+        .result-card p {
+            font-size: 1.5rem;
+            color: #fff;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+
+        .close-btn {
+            background: var(--neon-pink);
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="spooky-bg" id="spookyBg"></div>
+
+    <div class="theater-container">
+        <div class="marquee">
+            <h1>NOW SHOWING</h1>
+            <div class="subtitle">Dan & Ally's Spooky Roulette</div>
+        </div>
+
+        <div class="wheel-outer">
+            <div class="pointer"></div>
+            <canvas id="wheel" width="300" height="300"></canvas>
+        </div>
+
+        <button class="spin-btn" id="spinBtn" onclick="spin()">SPIN IF YOU DARE!</button>
+    </div>
+
+    <div class="result-overlay" id="resultOverlay">
+        <div class="result-card">
+            <h2>TONIGHT'S FEATURE</h2>
+            <p id="winnerTitle">Movie Title</p>
+            <button class="close-btn" onclick="closeModal()">GRAB THE POPCORN 🍿</button>
+        </div>
+    </div>
+
+    <script>
+        const movies = [
+            "Hereditary", "Who Can Kill a Child?", "The Lighthouse", "Saint Maud",
+            "It Comes at Night", "High Life", "The Innocents", "The Exorcist",
+            "The Birds", "Psycho", "Don't Breathe", "The Crow",
+            "Rosemary’s Baby", "Silence of the Lambs", "Dawn of the Dead",
+            "Talk to Me", "Drag Me to Hell", "Under the Shadow",
+            "It Follows", "Presence", "The Host", "Under the Skin"
+        ];
+
+        const colors = ["#800e13", "#9d4edd", "#ff2a85", "#161024", "#39ff14", "#ffcf33"];
+        
+        const canvas = document.getElementById("wheel");
+        const ctx = canvas.getContext("2d");
+        const spinBtn = document.getElementById("spinBtn");
+        const overlay = document.getElementById("resultOverlay");
+        const winnerTitle = document.getElementById("winnerTitle");
+
+        const numOptions = movies.length;
+        const arcSize = (2 * Math.PI) / numOptions;
+        let currentRotation = 0;
+
+        // Draw the wheel segments
+        function drawWheel() {
+            const radius = canvas.width / 2;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            movies.forEach((movie, i) => {
+                const angle = i * arcSize;
+                ctx.beginPath();
+                ctx.fillStyle = colors[i % colors.length];
+                ctx.moveTo(radius, radius);
+                ctx.arc(radius, radius, radius, angle, angle + arcSize);
+                ctx.lineTo(radius, radius);
+                ctx.fill();
+
+                // Text styling
+                ctx.save();
+                ctx.translate(radius, radius);
+                ctx.rotate(angle + arcSize / 2);
+                ctx.textAlign = "right";
+                ctx.fillStyle = "#fff";
+                ctx.font = "bold 9px Montserrat";
+                ctx.fillText(movie.length > 18 ? movie.substring(0, 15) + "..." : movie, radius - 10, 3);
+                ctx.restore();
+            });
+        }
+
+        function spin() {
+            spinBtn.disabled = true;
+            
+            // Random spin amount (at least 5 full rotations + random angle)
+            const extraDegrees = Math.floor(Math.random() * 360);
+            const totalRotation = currentRotation + 1800 + extraDegrees;
+            
+            canvas.style.transform = `rotate(-${totalRotation}deg)`;
+
+            setTimeout(() => {
+                // Calculate winning segment based on final rotation
+                const actualDegrees = totalRotation % 360;
+                // Pointer is at top (270 deg in canvas space)
+                const winningIndex = Math.floor(((actualDegrees + 90) % 360) / (360 / numOptions));
+                
+                winnerTitle.innerText = movies[numOptions - 1 - winningIndex] || movies[0];
+                overlay.classList.add("active");
+                currentRotation = totalRotation;
+                spinBtn.disabled = false;
+            }, 4000);
+        }
+
+        function closeModal() {
+            overlay.classList.remove("active");
+        }
+
+        // Floating background elements generator
+        function createSpookyBackground() {
+            const bg = document.getElementById("spookyBg");
+            const icons = ["👻", "🦇", "🍿", "🕷️", "🎃", "📹"];
+            for (let i = 0; i < 20; i++) {
+                const el = document.createElement("div");
+                el.className = "floating-emoji";
+                el.innerText = icons[Math.floor(Math.random() * icons.length)];
+                el.style.left = `${Math.random() * 100}%`;
+                el.style.animationDuration = `${8 + Math.random() * 10}s`;
+                el.style.animationDelay = `${Math.random() * 5}s`;
+                bg.appendChild(el);
+            }
+        }
+
+        drawWheel();
+        createSpookyBackground();
+    </script>
+</body>
+</html>
